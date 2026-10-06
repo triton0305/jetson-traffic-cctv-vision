@@ -49,7 +49,7 @@ void NetworkWorker::lost()
 {
   runtime_state_.disconnected(queue_);
   tcp_client_.disconnect();
-  std::cerr << "Pi Link DOWN: pi_connection_lost\n";
+  std::cerr << "Server Link DOWN: server_connection_lost\n";
 }
 
 void NetworkWorker::transmit()
@@ -104,7 +104,7 @@ void NetworkWorker::receive()
           if (stopping_)
             break;
           session = runtime_state_.connected(queue_);
-          std::cout << "Pi Link UP: pi_connection_restored; awaiting control\n";
+          std::cout << "Server Link UP: server_connection_restored; awaiting control\n";
         }
         else
           runtime_state_.disconnected(queue_);

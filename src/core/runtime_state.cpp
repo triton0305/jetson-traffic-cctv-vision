@@ -19,8 +19,8 @@ void RuntimeState::pauseLocked(const std::string& reason, MessageQueue& queue)
 std::uint64_t RuntimeState::connected(MessageQueue& queue)
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  pauseLocked("pi_connection_restored", queue);
-  state_.pi_link = PiLinkState::UP;
+  pauseLocked("server_connection_restored", queue);
+  state_.server_link = ServerLinkState::UP;
   ++state_.session;
   if (ever_connected_)
     ++state_.reconnects;
@@ -31,14 +31,14 @@ std::uint64_t RuntimeState::connected(MessageQueue& queue)
 void RuntimeState::disconnected(MessageQueue& queue)
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  state_.pi_link = PiLinkState::DOWN;
-  pauseLocked("pi_connection_lost", queue);
+  state_.server_link = ServerLinkState::DOWN;
+  pauseLocked("server_connection_lost", queue);
 }
 
 void RuntimeState::stop(MessageQueue& queue)
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  state_.pi_link = PiLinkState::DOWN;
+  state_.server_link = ServerLinkState::DOWN;
   pauseLocked("stopping", queue);
 }
 
@@ -46,7 +46,7 @@ bool RuntimeState::control(std::uint64_t session, bool allowed,
                            const std::string& reason, MessageQueue& queue)
 {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (state_.session != session || state_.pi_link != PiLinkState::UP)
+  if (state_.session != session || state_.server_link != ServerLinkState::UP)
     return false;
   if (!allowed)
     pauseLocked(reason, queue);

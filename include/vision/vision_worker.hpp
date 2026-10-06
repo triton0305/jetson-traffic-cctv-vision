@@ -4,10 +4,11 @@
 #include <csignal>
 #include <cstdint>
 
-class Camera;
+class CctvStream;
 class Preprocessor;
 class Detector;
 class PostProcessor;
+class Tracker;
 class Serializer;
 class MessageQueue;
 class Metrics;
@@ -17,10 +18,11 @@ class VisionWorker
 {
 public:
   VisionWorker(
-    Camera& camera,
+    CctvStream& camera,
     Preprocessor& preprocessor,
     Detector& detector,
     PostProcessor& postprocessor,
+    Tracker& tracker,
     Serializer& serializer,
     MessageQueue& message_queue,
     RuntimeState& runtime_state,
@@ -31,10 +33,11 @@ public:
   void run();
 
 private:
-  Camera& camera_;
+  CctvStream& camera_;
   Preprocessor& preprocessor_;
   Detector& detector_;
   PostProcessor& postprocessor_;
+  Tracker& tracker_;
   Serializer& serializer_;
   MessageQueue& message_queue_;
   RuntimeState& runtime_state_;

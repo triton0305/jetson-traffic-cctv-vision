@@ -11,11 +11,13 @@
 #include "core/metrics.hpp"
 #include "core/runtime_state.hpp"
 
-#include "vision/camera.hpp"
+#include "input/utic_cctv_provider.hpp"
+#include "input/cctv_stream.hpp"
 #include "vision/detector.hpp"
 #include "vision/postprocessor.hpp"
 #include "vision/preprocessor.hpp"
 #include "vision/vision_worker.hpp"
+#include "vision/tracker.hpp"
 
 #include "network/message_queue.hpp"
 #include "network/network_worker.hpp"
@@ -66,10 +68,13 @@ int runApplication(int argc, char* argv[])
 
   const std::string model_path = MODEL_PATH;
 
-  Camera camera(0, 640, 480, 30);
+  UticCctvProvider provider(UticCctvConfig::fromEnvironment());
+  const auto endpoint = provider.select();
+  CctvStream camera(endpoint.stream_url, [&] { return provider.select(true).stream_url; });
   Preprocessor preprocessor(640, 640);
   Detector detector(model_path);
   PostProcessor postprocessor(0.25f, 0.45f);
+  Tracker tracker;
   Serializer serializer;
   TcpClient tcp_client(server_ip, server_port);
   Metrics metrics;
@@ -80,7 +85,7 @@ int runApplication(int argc, char* argv[])
 
   if (!camera.open())
   {
-    std::cerr << "Failed to open camera\n";
+    std::cerr << "Failed to open CCTV Stream\n";
     return 1;
   }
 
@@ -99,7 +104,7 @@ int runApplication(int argc, char* argv[])
   }
 
   VisionWorker vision_worker(
-    camera, preprocessor, detector, postprocessor,
+    camera, preprocessor, detector, postprocessor, tracker,
     serializer, message_queue, runtime_state, metrics,
     boot_id, running);
 

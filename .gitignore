@@ -1,24 +1,25 @@
-build/
-
+# Generated builds and test reports
+/build*/
+/Testing/
 *.o
 *.out
 
-.vscode/
-build-deploy/
+# Local configuration and credentials
+/.env
+/.env.*
+/.vscode/
 
-*.pt
-*.onnx
-boot_id.dat
-
+# Model assets and persistent runtime state
 *.engine
-test/detection_demo.avi
-test/detection_check.jpg
+*.onnx
+*.pt
+/boot_id.dat
 
-# Runtime / validation artifacts
-logs/
+# Runtime output
+/artifacts/
+/logs/
 *.log
 *.trace
 *.pcap
 *.pcapng
 *.pid
-artifacts/

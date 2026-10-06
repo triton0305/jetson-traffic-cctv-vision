@@ -19,11 +19,13 @@
 
 #include "protocol/outbound_message.hpp"
 #include "protocol/serializer.hpp"
+#include "protocol/snapshot_publisher.hpp"
 
-#include "vision/camera.hpp"
+#include "input/cctv_stream.hpp"
 #include "vision/detector.hpp"
 #include "vision/postprocessor.hpp"
 #include "vision/preprocessor.hpp"
+#include "vision/tracker.hpp"
 
 namespace
 {
@@ -35,10 +37,11 @@ std::int64_t currentUnixTimeMs()
 }
 
 VisionWorker::VisionWorker(
-  Camera& camera,
+  CctvStream& camera,
   Preprocessor& preprocessor,
   Detector& detector,
   PostProcessor& postprocessor,
+  Tracker& tracker,
   Serializer& serializer,
   MessageQueue& message_queue,
   RuntimeState& runtime_state,
@@ -49,6 +52,7 @@ VisionWorker::VisionWorker(
     preprocessor_(preprocessor),
     detector_(detector),
     postprocessor_(postprocessor),
+    tracker_(tracker),
     serializer_(serializer),
     message_queue_(message_queue),
     runtime_state_(runtime_state),
@@ -61,7 +65,7 @@ VisionWorker::VisionWorker(
 void VisionWorker::run()
 {
   std::uint64_t frame_id = 0;
-  std::uint64_t sequence = 0;
+  SnapshotPublisher publisher(serializer_, message_queue_, runtime_state_, metrics_, boot_id_);
   std::cout << "Edge Vision loop started\n";
   std::cout << "Boot ID: " << boot_id_ << '\n';
   std::cout << "Press Ctrl+C to quit\n";
@@ -74,7 +78,7 @@ void VisionWorker::run()
 
     cv::Mat frame;
 
-    if (!camera_.read(frame))
+    if (!camera_.read(frame, running_))
     {
       std::cerr << "Failed to capture frame\n";
       break;
@@ -100,10 +104,12 @@ void VisionWorker::run()
       preprocessor_.inputWidth(),
       preprocessor_.inputHeight());
 
+    const std::vector<TrackedDetection> tracked_detections = tracker_.update(detections);
     cv::Mat display_frame = frame.clone();
 
-    for (const Detection& detection : detections)
+    for (const TrackedDetection& tracked_detection : tracked_detections)
     {
+      const Detection& detection = tracked_detection.detection;
       const BoundingBox& bbox = detection.bbox;
 
       cv::rectangle(
@@ -113,7 +119,7 @@ void VisionWorker::run()
         2);
 
       std::ostringstream label;
-      label << detection.class_name << ' '
+      label << detection.class_name << " ID:" << tracked_detection.track_id << ' '
             << std::fixed << std::setprecision(2)
             << detection.confidence;
 
@@ -129,6 +135,24 @@ void VisionWorker::run()
         2);
     }
 
+    const MetricsSnapshot display_metrics = metrics_.snapshot();
+    std::ostringstream fps_label;
+    fps_label << "FPS: " << std::fixed << std::setprecision(1) << display_metrics.effective_fps;
+    std::ostringstream inference_label;
+    inference_label << "Inference: " << std::fixed << std::setprecision(1)
+                    << display_metrics.avg_inference_ms << " ms";
+    const std::string overlay[] = {
+      fps_label.str(), inference_label.str(),
+      "Active Tracks: " + std::to_string(tracked_detections.size())};
+    for (int i = 0; i < 3; ++i)
+    {
+      const cv::Point position(10, 25 + i * 24);
+      cv::putText(display_frame, overlay[i], position, cv::FONT_HERSHEY_SIMPLEX,
+                  0.6, cv::Scalar(0, 0, 0), 3);
+      cv::putText(display_frame, overlay[i], position, cv::FONT_HERSHEY_SIMPLEX,
+                  0.6, cv::Scalar(255, 255, 255), 1);
+    }
+
     cv::imshow("Edge Vision", display_frame);
 
     if (cv::waitKey(1) == 27)
@@ -136,36 +160,10 @@ void VisionWorker::run()
       running_ = 0;
     }
 
-    if (running_ && frame_state.data_state == DataState::RUNNING)
+    if (running_ && !publisher.publish({current_frame_id, timestamp_ms}, detections, frame_state))
     {
-      runtime_state_.produce(frame_state.epoch, [&]
-      {
-        for (const Detection& detection : detections)
-        {
-          ++sequence;
-
-          const std::string message_id =
-            createMessageId(boot_id_, sequence);
-
-          DetectionResult result;
-          result.frame_id = current_frame_id;
-          result.timestamp_ms = timestamp_ms;
-
-          std::string message =
-            serializer_.serialize(result, detection, message_id);
-
-          if (!message.empty())
-          {
-            metrics_.recordProduced();
-            if (!message_queue_.push({message_id, message, frame_state.epoch}))
-            {
-              std::cerr << "Failed to enqueue message\n";
-              running_ = 0;
-              break;
-            }
-          }
-        }
-      });
+      std::cerr << "Failed to enqueue snapshot\n";
+      running_ = 0;
     }
 
     metrics_.recordFrame(

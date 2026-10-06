@@ -42,6 +42,17 @@ find_package(OpenCV REQUIRED COMPONENTS
 )
 
 find_package(Threads REQUIRED)
+find_package(CURL REQUIRED)
+
+add_library(cctv_provider src/input/utic_cctv_provider.cpp)
+target_include_directories(cctv_provider PUBLIC include)
+target_link_libraries(cctv_provider PUBLIC CURL::libcurl)
+target_compile_options(cctv_provider PRIVATE -Wall -Wextra -Wpedantic)
+
+add_library(cctv_stream src/input/cctv_stream.cpp)
+target_include_directories(cctv_stream PUBLIC include ${OpenCV_INCLUDE_DIRS})
+target_link_libraries(cctv_stream PUBLIC ${OpenCV_LIBS} Threads::Threads)
+target_compile_options(cctv_stream PRIVATE -Wall -Wextra -Wpedantic)
 
 # =============================================================================
 # Paths
@@ -66,11 +77,12 @@ set(SOURCES
     src/core/runtime_state.cpp
     src/core/metrics.cpp
     src/vision/vision_worker.cpp
-    src/vision/camera.cpp
+    src/vision/tracker.cpp
     src/vision/preprocessor.cpp
     src/vision/detector.cpp
     src/vision/postprocessor.cpp
     src/protocol/serializer.cpp
+    src/protocol/snapshot_publisher.cpp
     src/network/tcp_client.cpp
     src/network/message_queue.cpp
     src/network/network_worker.cpp
@@ -104,6 +116,8 @@ target_link_libraries(edge_vision
     PRIVATE
         ${OpenCV_LIBS}
         Threads::Threads
+        cctv_provider
+        cctv_stream
         nvinfer
         cudart
 )
@@ -165,6 +179,22 @@ install(TARGETS edge_vision RUNTIME DESTINATION bin)
 
 include(CTest)
 if(BUILD_TESTING)
+  add_executable(snapshot_test tests/snapshot_test.cpp
+    src/protocol/snapshot_publisher.cpp src/protocol/serializer.cpp
+    src/core/message_id.cpp src/core/runtime_state.cpp src/core/metrics.cpp
+    src/network/message_queue.cpp)
+  target_include_directories(snapshot_test PRIVATE include)
+  target_compile_definitions(snapshot_test PRIVATE BOOT_ID_FILE_PATH="unused")
+  target_link_libraries(snapshot_test PRIVATE Threads::Threads)
+  target_compile_options(snapshot_test PRIVATE -Wall -Wextra -Wpedantic)
+  add_test(NAME snapshot COMMAND snapshot_test)
+
+  add_executable(utic_cctv_provider_test tests/utic_cctv_provider_test.cpp)
+  target_link_libraries(utic_cctv_provider_test PRIVATE cctv_provider)
+  add_test(NAME utic_cctv_provider COMMAND utic_cctv_provider_test)
+endif()
+
+if(BUILD_TESTING)
   add_executable(network_integration_test
     tests/network_integration.cpp
     src/network/tcp_client.cpp
@@ -183,11 +213,9 @@ if(BUILD_TESTING)
 endif()
 
 if(BUILD_TESTING)
-  add_executable(network_transport_test tests/network_transport.cpp src/network/tcp_client.cpp)
-  target_include_directories(network_transport_test PRIVATE include)
-  target_compile_options(network_transport_test PRIVATE -Wall -Wextra -Wpedantic)
-  target_link_libraries(network_transport_test PRIVATE Threads::Threads)
-  target_link_options(network_transport_test PRIVATE -Wl,--wrap=send)
-  add_test(NAME network_transport COMMAND network_transport_test)
-  set_tests_properties(network_transport PROPERTIES TIMEOUT 20)
+  add_executable(cctv_recovery_test tests/cctv_recovery_test.cpp)
+  target_link_libraries(cctv_recovery_test PRIVATE cctv_stream)
+  target_link_options(cctv_recovery_test PRIVATE -Wl,--wrap=nanosleep)
+  add_test(NAME cctv_recovery COMMAND cctv_recovery_test)
+  set_tests_properties(cctv_recovery PROPERTIES TIMEOUT 10)
 endif()

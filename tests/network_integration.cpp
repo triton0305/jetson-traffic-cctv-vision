@@ -118,7 +118,7 @@ int main()
     std::this_thread::sleep_for(std::chrono::milliseconds(150));
     require(listen(listener.fd, 4) == 0, "listen failed");
     Socket peer{acceptClient(listener.fd)};
-    waitFor([&] { return state.snapshot().pi_link == PiLinkState::UP; });
+    waitFor([&] { return state.snapshot().server_link == ServerLinkState::UP; });
     require(state.snapshot().data_state == DataState::PAUSED, "connect auto-resumed");
     noFrame(peer.fd);
     framed(peer.fd, "[]");
@@ -143,6 +143,9 @@ int main()
       auto message = nlohmann::json::parse(readFrame(peer.fd));
       require(message["message_id"] == id && message["data"]["timestamp_ms"] == 1234,
               "vision semantics changed");
+      require(message["data"]["class_id"] == 2 &&
+              message["data"]["bbox"]["y"] == 20 &&
+              !message["data"].contains("detections"), "object vision schema");
     }
     // Control silence longer than the removed ACK timeout is normal.
     std::this_thread::sleep_for(std::chrono::milliseconds(1700));
@@ -161,12 +164,12 @@ int main()
     shutdown(peer.fd, SHUT_RDWR);
     close(peer.fd);
     peer.fd = -1;
-    waitFor([&] { return state.snapshot().pi_link == PiLinkState::DOWN; });
-    require(state.snapshot().pause_reason == "pi_connection_lost", "wrong lost reason");
+    waitFor([&] { return state.snapshot().server_link == ServerLinkState::DOWN; });
+    require(state.snapshot().pause_reason == "server_connection_lost", "wrong lost reason");
     peer.fd = acceptClient(listener.fd);
     waitFor([&] { return state.snapshot().session > old_session; });
     require(state.snapshot().data_state == DataState::PAUSED, "reconnect auto-resumed");
-    require(state.snapshot().pause_reason == "pi_connection_restored", "wrong restored reason");
+    require(state.snapshot().pause_reason == "server_connection_restored", "wrong restored reason");
     require(!state.control(old_session, true, "stale", queue), "old session control accepted");
     noFrame(peer.fd);
     framed(peer.fd, control("resume", "wsl_connection_restored"));
@@ -185,7 +188,7 @@ int main()
       for (int i = 0; i < 8; ++i)
         queue.push({"blocked", std::string(1024 * 1024, 'x'), before_failure.epoch});
     });
-    waitFor([&] { return state.snapshot().pi_link == PiLinkState::DOWN; });
+    waitFor([&] { return state.snapshot().server_link == ServerLinkState::DOWN; });
     require(queue.size() == 0 && state.snapshot().discarded > 0, "TX failure did not clear queue");
     close(peer.fd);
     peer.fd = acceptClient(listener.fd);

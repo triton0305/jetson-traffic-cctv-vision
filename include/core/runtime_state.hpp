@@ -7,7 +7,7 @@
 #include <string>
 
 class MessageQueue;
-enum class PiLinkState
+enum class ServerLinkState
 {
   DOWN,
   UP
@@ -20,7 +20,7 @@ enum class DataState
 
 struct RuntimeSnapshot
 {
-  PiLinkState pi_link = PiLinkState::DOWN;
+  ServerLinkState server_link = ServerLinkState::DOWN;
   DataState data_state = DataState::PAUSED;
   bool downstream_allowed = false;
   std::string pause_reason = "initializing";
