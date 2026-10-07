@@ -149,11 +149,6 @@ export UTIC_API_KEY
 
 개발 바이너리를 직접 실행하려면:
 
-```bash
-DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
-  ./build-cctv/bin/edge_vision <server_ip> <server_port>
-```
-
 <details>
 <summary><strong>환경변수 확인 및 정리</strong></summary>
 
@@ -172,6 +167,11 @@ unset UTIC_API_KEY
 </details>
 
 ## Run
+
+```bash
+DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
+  ./build-cctv/bin/edge_vision <server_ip> <server_port>
+```
 
 ```bash
 ./run <server_ip> <server_port>
