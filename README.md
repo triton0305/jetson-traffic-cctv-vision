@@ -70,7 +70,7 @@ Jetson Nano에서 UTIC CCTV 입력부터 TensorRT 추론, Tracking, Snapshot 전
 <p align="center">
   <img width="640" height="478" alt="cctv_GIF" src="https://github.com/user-attachments/assets/b63ec797-d1d8-4b98-baf2-9a778fe258d9" />
 </p>
-<p align="center"><sub>2026.10.01 USB Webcam / TensorRT 실행 화면</sub></p>
+<p align="center"><sub>2026.10.07 UTIC CCTV / TensorRT 실행 화면</sub></p>
 
 ## Performance
 
