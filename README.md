@@ -11,14 +11,14 @@
 </p>
 
 <p align="center">
-  <a href="#performance">성능</a> · <a href="#architecture">구조</a> · <a href="#network-data">전송</a> · <a href="#validation">검증</a> · <a href="#build">빌드</a> · <a href="#run">실행</a>
+  <a href="#validation">검증</a> · <a href="#performance">성능</a> · <a href="#architecture">구조</a> · <a href="#network-data">전송</a> · <a href="#build">빌드</a> · <a href="#run">실행</a>
 </p>
 
 # Jetson Traffic CCTV Vision
 
 **Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Final Server로 전송하는 C++17 Vision Client입니다.**
 
-> **이전 버전:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 유지하고, UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 추가했습니다.
+> **기반 프로젝트:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 기반으로, 팀 프로젝트 요구사항에 맞춰 UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 구현했습니다.
 
 ## Development History
 
@@ -29,7 +29,7 @@
 
 ## Validation
 
-실제 Jetson Nano에서 UTIC CCTV 입력부터 TensorRT 추론, Tracking, Snapshot 전송까지 통합 검증했습니다.
+Jetson Nano에서 UTIC CCTV 입력부터 TensorRT 추론, Tracking, Snapshot 전송까지 통합 검증했습니다.
 
 | 검증 범위 | 확인 항목 | 결과 |
 |---|---|:---:|
@@ -49,11 +49,11 @@
 | `network_integration` | TCP 프레이밍 · Control · 재연결 · 과거 데이터 차단 · 큐 경쟁 · 종료 |
 | `cctv_recovery` | URL 갱신의 일시적 오류 재시도 · 복구 불가 오류 전달 · 종료 처리 |
 
-**HLS URL 선택 오류** — UTIC 재생 페이지의 HTML / JavaScript 주석에도 `.m3u8` 문자열이 있어 잘못된 URL이 선택될 수 있었습니다. 주석 영역을 제외하고 실제 재생 URL을 추출하며 query parameter를 유지하도록 수정하고 회귀 테스트를 추가했습니다.
+**HLS URL 선택 오류** — UTIC 재생 페이지의 HTML / JavaScript 주석에도 `.m3u8` 문자열이 있어 잘못된 URL이 선택될 수 있었습니다. 주석 영역을 제외하고 재생 URL을 추출하며 query parameter를 유지하도록 수정하고 회귀 테스트를 추가했습니다.
 
 **일시적 시작 실패** — UTIC 조회의 일시적 네트워크 오류는 30초 대기 후 재시도합니다. 조회 시도는 시작과 실행 중 URL 갱신을 합쳐 실행당 최대 4회입니다. 일시적 curl 오류는 open-data / metadata / playback-page 단계와 원인을 표시하며, 재시도 대기 중 Ctrl+C로 종료할 수 있습니다.
 
-**API Key 전달 오류** — Shell에서 API Key를 설정했지만 실행 프로세스에서 환경변수를 확인할 수 없는 문제가 있었습니다. Child process의 환경을 직접 확인해 서버나 API 장애가 아닌 환경변수 전달 문제로 범위를 좁혔으며, 실행 프로세스까지 필요한 환경변수가 전달되도록 수정했습니다.
+**API Key 전달 오류** — Shell에서 API Key를 설정했지만 실행 프로세스에서 환경변수를 확인할 수 없는 문제가 있었습니다. Child process의 환경을 확인해 서버나 API 장애가 아닌 환경변수 전달 문제로 범위를 좁혔으며, 실행 프로세스까지 필요한 환경변수가 전달되도록 수정했습니다.
 
 **Snapshot 부분 폐기** — 기존 메시지 단위 bounded queue는 포화 시 가장 오래된 메시지 하나를 폐기해, 같은 1초 Snapshot의 일부 `vision`만 유실될 수 있었습니다. Queue 관리 단위를 메시지에서 Snapshot으로 변경해 포화 시 오래된 Snapshot 전체를 폐기하도록 수정했으며, 객체별 `vision`, `vehicle_count`, 4-byte big-endian length-prefix 등 기존 서버 인터페이스는 유지했습니다.
 
@@ -64,7 +64,6 @@
 **Snapshot 전달 보장 범위** — Snapshot 단위 Queue는 Queue 포화로 같은 Snapshot의 일부 메시지만 폐기되는 문제를 방지합니다. 다만 Snapshot의 개별 메시지를 송신하는 도중 연결이 끊기거나 PAUSE되면 일부 메시지만 서버에 도달할 수 있습니다. Snapshot 전체의 수신·저장을 원자적으로 보장하려면 Snapshot 단위 ACK나 서버 Transaction 등 별도의 프로토콜 지원이 필요합니다.
 
 </details>
-
 
 ## Performance
 
@@ -78,7 +77,7 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 
 ## Architecture
 
-```mermaid
+```mermaid id="zvbb4y"
 flowchart TD
     A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
     subgraph V["영상 처리 · PAUSE 중에도 유지"]
@@ -105,7 +104,7 @@ flowchart TD
 
 모델은 저장소에 포함하지 않습니다. 개발 실행 전 `models/yolo26n_fp16.engine`을 별도로 준비합니다.
 
-```bash
+```bash id="vd52c6"
 cmake -S . -B build-cctv \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_TESTING=ON
@@ -119,7 +118,7 @@ cmake --build build-cctv -j2
 
 UTIC 인증키는 환경변수로 전달합니다.
 
-```bash
+```bash id="pvtl4z"
 read -r -s -p 'UTIC API key: ' UTIC_API_KEY
 printf '\n'
 export UTIC_API_KEY
@@ -131,7 +130,7 @@ export UTIC_API_KEY
 
 개발 바이너리를 직접 실행하려면:
 
-```bash
+```bash id="rqwg2q"
 DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
   ./build-cctv/bin/edge_vision <server_ip> <server_port>
 ```
@@ -141,13 +140,13 @@ DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
 
 키 값을 출력하지 않고 현재 환경에서 설정 여부를 확인하려면:
 
-```bash
+```bash id="0al5pp"
 python3 -c 'import os; v=os.getenv("UTIC_API_KEY"); print("UTIC_API_KEY:", "absent" if v is None else "empty" if not v else "nonempty")'
 ```
 
 실행 후 필요하면 환경변수를 제거합니다.
 
-```bash
+```bash id="fwbzz8"
 unset UTIC_API_KEY
 ```
 
@@ -157,7 +156,7 @@ unset UTIC_API_KEY
 
 CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
 
-```bash
+```bash id="u3mr9k"
 export UTIC_CCTV_ID='<CCTV_ID>'
 ./run <server_ip> <server_port>
 ```
@@ -167,7 +166,7 @@ export UTIC_CCTV_ID='<CCTV_ID>'
 
 UTIC 개방데이터 목록에서 CCTV ID를 검색할 수 있습니다.
 
-```bash
+```bash id="zzks11"
 curl -sS \
   "http://www.utic.go.kr/guide/cctvOpenData.do?key=${UTIC_API_KEY}" \
   -o /tmp/utic_open.html
@@ -179,7 +178,7 @@ grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 
 프로그램 시작 시 UTIC 개방데이터를 조회하고, 동일한 HTTP session/cookie를 사용하여 CCTV metadata와 HLS 주소를 조회합니다.
 
-실제 HLS 주소는 실행 시 조회합니다. `.m3u8` URL과 확장자가 없는 `video_url` 형식을 처리합니다.
+HLS 주소는 실행 시 조회합니다. `.m3u8` URL과 확장자가 없는 `video_url` 형식을 처리합니다.
 
 ## Network Data
 
@@ -213,7 +212,7 @@ TCP 메시지는 `4-byte big-endian length + UTF-8 JSON` 형식입니다.
 
 운영 설치 경로:
 
-```text
+```text id="krjtf7"
 /opt/traffic_cctv_vision/bin/edge_vision
 /opt/traffic_cctv_vision/models/yolo26n_fp16.engine
 /var/lib/traffic_cctv_vision/boot_id.dat
@@ -221,7 +220,7 @@ TCP 메시지는 `4-byte big-endian length + UTF-8 JSON` 형식입니다.
 
 재설치:
 
-```bash
+```bash id="veqxuq"
 cmake -S . -B build-deploy \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/opt/traffic_cctv_vision \
@@ -237,7 +236,7 @@ sudo cmake --install build-deploy
 
 운영 바이너리를 실행하려면:
 
-```bash
+```bash id="lbf1a7"
 EDGE_VISION_BIN=/opt/traffic_cctv_vision/bin/edge_vision \
   ./run <server_ip> <server_port>
 ```
