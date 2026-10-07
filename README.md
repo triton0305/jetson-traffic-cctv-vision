@@ -81,7 +81,7 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 flowchart TD
     A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
 
-    subgraph J["Jetson Nano · Vision Client · 담당 영역"]
+    subgraph J["Jetson Nano · Vision Client"]
         B --> C["Letterbox → TensorRT FP16 → NMS"]
         C --> D["Tracker / Display"]
         C --> E{"RUNNING · 1초 경과?"}
