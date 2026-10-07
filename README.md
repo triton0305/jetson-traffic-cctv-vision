@@ -173,12 +173,35 @@ unset UTIC_API_KEY
 
 ## CCTV 선택
 
-CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
+`run` 스크립트는 프로젝트 루트의 `.env`를 자동으로 로드합니다.  
+처음 실행하기 전에 UTIC API Key와 사용할 CCTV ID를 설정합니다.
 
 ```bash
-export UTIC_CCTV_ID='<CCTV_ID>'
+UTIC_API_KEY='<YOUR_API_KEY>'
+UTIC_CCTV_ID='E910184'
+```
+
+설정된 CCTV ID는 다음과 같이 확인할 수 있습니다.
+
+```bash
+grep '^UTIC_CCTV_ID=' .env
+```
+
+CCTV를 변경할 때는 `.env`의 `UTIC_CCTV_ID`만 수정하면 됩니다.
+
+```bash
+sed -i "s/^UTIC_CCTV_ID=.*/UTIC_CCTV_ID='E910184'/" .env
+```
+
+설정 후 별도의 코드 수정이나 재빌드 없이 실행합니다.
+
+```bash
 ./run <server_ip> <server_port>
 ```
+
+`run` 스크립트가 `.env`를 로드하고 `UTIC_API_KEY`와 `UTIC_CCTV_ID`를 실행 프로세스에 전달합니다.
+
+> `.env`에는 UTIC API Key가 포함되므로 Git에 커밋하지 않습니다.
 
 <details>
 <summary><strong>CCTV ID 검색 방법</strong></summary>
