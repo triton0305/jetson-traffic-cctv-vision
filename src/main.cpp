@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <string>
+#include <chrono>
+#include <thread>
 #include <opencv2/highgui.hpp>
 
 #include "core/boot_id.hpp"
@@ -69,7 +71,25 @@ int runApplication(int argc, char* argv[])
   const std::string model_path = MODEL_PATH;
 
   UticCctvProvider provider(UticCctvConfig::fromEnvironment());
-  const auto endpoint = provider.select();
+  CctvEndpoint endpoint;
+  for (int attempt = 1; attempt <= 4; ++attempt)
+  {
+    try
+    {
+      endpoint = provider.select();
+      break;
+    }
+    catch (const CctvTransientError& error)
+    {
+      if (attempt == 4)
+        throw;
+      std::cerr << error.what() << "; startup retry after 30 seconds\n";
+      for (int tick = 0; tick < 300 && running; ++tick)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      if (!running)
+        return 0;
+    }
+  }
   CctvStream camera(endpoint.stream_url, [&] { return provider.select(true).stream_url; });
   Preprocessor preprocessor(640, 640);
   Detector detector(model_path);

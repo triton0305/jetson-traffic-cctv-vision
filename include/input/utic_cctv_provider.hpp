@@ -27,6 +27,7 @@ public:
 private:
   UticCctvConfig config_;
   std::size_t calls_ = 0;
+  bool selected_ = false;
   std::chrono::steady_clock::time_point last_call_{};
 };
 

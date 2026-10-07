@@ -172,3 +172,4 @@ SIGINT Graceful Shutdown               PASS
 측정된 Vision 처리 성능은 약 `10.5~11 FPS`, TensorRT 추론 시간은 약 `55 ms`였습니다.
 
 UTIC Stream page의 HTML 주석 내부에도 `.m3u8` 문자열이 포함될 수 있어, HLS parser에서 주석 영역을 제외하고 실제 Stream URL을 선택하도록 처리했습니다.
+시작 조회의 일시적 네트워크 실패도 30초 간격으로 실행당 최대 4회 시도합니다. 오류 로그는 open-data / metadata / playback-page 단계와 curl 원인을 구분하며 키·전체 URL은 출력하지 않습니다. 대기 중 Ctrl+C로 종료할 수 있습니다.

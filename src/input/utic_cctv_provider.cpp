@@ -159,7 +159,7 @@ UticCctvProvider::UticCctvProvider(UticCctvConfig config)
 CctvEndpoint UticCctvProvider::select(bool refresh)
 {
   if ((calls_ == 0 && refresh) ||
-      (calls_ != 0 && !refresh))
+      (selected_ && !refresh))
     throw std::runtime_error(
       "UTIC: initial query allowed once; later queries require stream failure");
 
@@ -202,7 +202,8 @@ CctvEndpoint UticCctvProvider::select(bool refresh)
   auto request =
     [&](const std::string& url,
         const std::string& referer,
-        bool ajax)
+        bool ajax,
+        const char* stage)
   {
     std::string body;
     curl_slist* headers = nullptr;
@@ -233,7 +234,8 @@ CctvEndpoint UticCctvProvider::select(bool refresh)
     if (status == CURLE_OPERATION_TIMEDOUT || status == CURLE_COULDNT_CONNECT ||
         status == CURLE_COULDNT_RESOLVE_HOST || status == CURLE_RECV_ERROR ||
         status == CURLE_SEND_ERROR || status == CURLE_PARTIAL_FILE)
-      throw CctvTransientError("UTIC: temporary network request failure");
+      throw CctvTransientError(
+        std::string("UTIC: ") + stage + " request failed: " + curl_easy_strerror(status));
 
     if (status != CURLE_OK)
       throw std::runtime_error(
@@ -271,7 +273,7 @@ CctvEndpoint UticCctvProvider::select(bool refresh)
     escape(curl.get(), config_.api_key);
 
   const std::string list_body =
-    request(open_url, "", false);
+    request(open_url, "", false, "open-data");
 
   if (list_body.find(config_.cctv_id) ==
       std::string::npos)
@@ -306,7 +308,7 @@ CctvEndpoint UticCctvProvider::select(bool refresh)
     escape(curl.get(), config_.cctv_id);
 
   const std::string info_body =
-    request(info_url, open_url, true);
+    request(info_url, open_url, true, "metadata");
 
   const auto info =
     nlohmann::json::parse(
@@ -391,10 +393,11 @@ CctvEndpoint UticCctvProvider::select(bool refresh)
     << '\n';
 
   const std::string stream_body =
-    request(stream_page, open_url, false);
+    request(stream_page, open_url, false, "playback-page");
 
   const std::string stream_url = extractUticHlsUrl(stream_body);
 
+  selected_ = true;
   return CctvEndpoint{
     cctv_name,
     longitude,
