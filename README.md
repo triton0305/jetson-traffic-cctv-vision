@@ -135,44 +135,6 @@ cmake --build build-cctv -j2
 
 ## Run
 
-UTIC 인증키는 환경변수로 전달합니다.
-
-```bash
-read -r -s -p 'UTIC API key: ' UTIC_API_KEY
-printf '\n'
-export UTIC_API_KEY
-
-./run <server_ip> <server_port>
-```
-
-키 입력, `export`, 실행은 동일한 터미널에서 수행합니다.
-
-개발 바이너리를 직접 실행하려면:
-
-<details>
-<summary><strong>환경변수 확인 및 정리</strong></summary>
-
-키 값을 출력하지 않고 현재 환경에서 설정 여부를 확인하려면:
-
-```bash
-python3 -c 'import os; v=os.getenv("UTIC_API_KEY"); print("UTIC_API_KEY:", "absent" if v is None else "empty" if not v else "nonempty")'
-```
-
-실행 후 필요하면 환경변수를 제거합니다.
-
-```bash
-unset UTIC_API_KEY
-```
-
-</details>
-
-## Run
-
-```bash
-DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
-  ./build-cctv/bin/edge_vision <server_ip> <server_port>
-```
-
 ```bash
 ./run <server_ip> <server_port>
 ```
