@@ -18,7 +18,7 @@
 
 **Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Relay Server로 전송하는 C++17 Vision Client입니다.**
 
-> **기반 프로젝트:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 기반으로, 팀 프로젝트 요구사항에 맞춰 UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 구현했습니다.
+> **팀 프로젝트 적용:** 개인 프로젝트 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 기반으로, 팀 프로젝트 요구사항에 맞춰 UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 구현했습니다. 생성된 `vision` / `vehicle_count` 데이터는 팀 프로젝트의 [Relay Server](https://github.com/LeeKiBeom1/iot_yolo_project)로 전달합니다.
 
 ## Development History
 
@@ -77,7 +77,7 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 
 ## Architecture
 
-```mermaid id="zvbb4y"
+```mermaid
 flowchart TD
     A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
     subgraph V["영상 처리 · PAUSE 중에도 유지"]
@@ -104,7 +104,7 @@ flowchart TD
 
 모델은 저장소에 포함하지 않습니다. 개발 실행 전 `models/yolo26n_fp16.engine`을 별도로 준비합니다.
 
-```bash id="vd52c6"
+```bash
 cmake -S . -B build-cctv \
   -DCMAKE_BUILD_TYPE=Release \
   -DBUILD_TESTING=ON
@@ -118,7 +118,7 @@ cmake --build build-cctv -j2
 
 UTIC 인증키는 환경변수로 전달합니다.
 
-```bash id="pvtl4z"
+```bash
 read -r -s -p 'UTIC API key: ' UTIC_API_KEY
 printf '\n'
 export UTIC_API_KEY
@@ -130,7 +130,7 @@ export UTIC_API_KEY
 
 개발 바이너리를 직접 실행하려면:
 
-```bash id="rqwg2q"
+```bash
 DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
   ./build-cctv/bin/edge_vision <server_ip> <server_port>
 ```
@@ -140,13 +140,13 @@ DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
 
 키 값을 출력하지 않고 현재 환경에서 설정 여부를 확인하려면:
 
-```bash id="0al5pp"
+```bash
 python3 -c 'import os; v=os.getenv("UTIC_API_KEY"); print("UTIC_API_KEY:", "absent" if v is None else "empty" if not v else "nonempty")'
 ```
 
 실행 후 필요하면 환경변수를 제거합니다.
 
-```bash id="fwbzz8"
+```bash
 unset UTIC_API_KEY
 ```
 
@@ -156,7 +156,7 @@ unset UTIC_API_KEY
 
 CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
 
-```bash id="u3mr9k"
+```bash
 export UTIC_CCTV_ID='<CCTV_ID>'
 ./run <server_ip> <server_port>
 ```
@@ -166,7 +166,7 @@ export UTIC_CCTV_ID='<CCTV_ID>'
 
 UTIC 개방데이터 목록에서 CCTV ID를 검색할 수 있습니다.
 
-```bash id="zzks11"
+```bash
 curl -sS \
   "http://www.utic.go.kr/guide/cctvOpenData.do?key=${UTIC_API_KEY}" \
   -o /tmp/utic_open.html
@@ -212,7 +212,7 @@ TCP 메시지는 `4-byte big-endian length + UTF-8 JSON` 형식입니다.
 
 운영 설치 경로:
 
-```text id="krjtf7"
+```text
 /opt/traffic_cctv_vision/bin/edge_vision
 /opt/traffic_cctv_vision/models/yolo26n_fp16.engine
 /var/lib/traffic_cctv_vision/boot_id.dat
@@ -220,7 +220,7 @@ TCP 메시지는 `4-byte big-endian length + UTF-8 JSON` 형식입니다.
 
 재설치:
 
-```bash id="veqxuq"
+```bash
 cmake -S . -B build-deploy \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX=/opt/traffic_cctv_vision \
@@ -236,9 +236,16 @@ sudo cmake --install build-deploy
 
 운영 바이너리를 실행하려면:
 
-```bash id="lbf1a7"
+```bash
 EDGE_VISION_BIN=/opt/traffic_cctv_vision/bin/edge_vision \
   ./run <server_ip> <server_port>
 ```
 
 </details>
+
+## Related Repositories
+
+| Repository | Role |
+|---|---|
+| [Relay Server](https://github.com/LeeKiBeom1/iot_yolo_project) | Vision / vehicle_count 수신 · Ubuntu Server 전달 · MariaDB 저장 |
+| [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision) | TensorRT FP16 기반 Vision Client의 기반 프로젝트 |
