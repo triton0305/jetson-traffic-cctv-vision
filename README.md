@@ -166,22 +166,6 @@ unset UTIC_API_KEY
 
 </details>
 
-개발 바이너리를 직접 실행하려면:
-
-```bash
-DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
-  ./build-cctv/bin/edge_vision <server_ip> <server_port>
-```
-
-## CCTV 선택
-
-CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
-
-```bash
-export UTIC_CCTV_ID='<CCTV_ID>'
-./run <server_ip> <server_port>
-```
-
 <details>
 <summary><strong>CCTV ID 검색 방법</strong></summary>
 
@@ -198,9 +182,18 @@ grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 </details>
 
 <details>
-<summary><strong>CCTV ID 기본값 설정</strong></summary>
+<summary><strong>CCTV ID 설정</strong></summary>
 
-매번 `UTIC_CCTV_ID`를 직접 지정하지 않고 실행하려면 프로젝트 루트의 `.env`에 CCTV ID를 설정합니다.
+CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
+
+현재 실행에서 사용할 CCTV ID를 지정하려면:
+
+```bash
+export UTIC_CCTV_ID='<CCTV_ID>'
+./run <server_ip> <server_port>
+```
+
+매번 `UTIC_CCTV_ID`를 직접 지정하지 않고 실행하려면 프로젝트 루트의 `.env`에 CCTV ID 기본값을 설정합니다.
 
 ```bash
 UTIC_CCTV_ID='<CCTV_ID>'
@@ -231,6 +224,13 @@ sed -i "s/^UTIC_CCTV_ID=.*/UTIC_CCTV_ID='<CCTV_ID>'/" .env
 프로그램 시작 시 UTIC 개방데이터를 조회하고, 동일한 HTTP session/cookie를 사용하여 CCTV metadata와 HLS 주소를 조회합니다.
 
 HLS 주소는 실행 시 조회합니다. `.m3u8` URL과 확장자가 없는 `video_url` 형식을 처리합니다.
+
+개발 바이너리를 직접 실행하려면:
+
+```bash
+DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
+  ./build-cctv/bin/edge_vision <server_ip> <server_port>
+```
 
 ## Network Data
 
