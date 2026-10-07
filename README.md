@@ -1,26 +1,71 @@
+<p align="center">
+  <img src="docs/assets/header.svg" alt="Jetson Traffic CCTV Vision — UTIC CCTV, TensorRT FP16 and snapshot delivery" width="100%">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/C%2B%2B-17-00599C?style=flat-square" alt="C++17">
+  <img src="https://img.shields.io/badge/NVIDIA-Jetson_Nano-76B900?style=flat-square" alt="NVIDIA Jetson Nano">
+  <img src="https://img.shields.io/badge/TensorRT-FP16-087F8C?style=flat-square" alt="TensorRT FP16">
+  <img src="https://img.shields.io/badge/OpenCV-FFMPEG-5C3EE8?style=flat-square" alt="OpenCV FFMPEG">
+  <img src="https://img.shields.io/badge/Input-UTIC_CCTV-168B91?style=flat-square" alt="UTIC CCTV">
+</p>
+
+<p align="center">
+  <a href="#performance">성능</a> · <a href="#architecture">구조</a> · <a href="#network-data">전송</a> · <a href="#validation">검증</a> · <a href="#build">빌드</a> · <a href="#run">실행</a>
+</p>
+
 # Jetson Traffic CCTV Vision
+
+**개발 기간: 2026.10.06 ~ 2026.10.07**
 
 Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Final Server로 전송하는 C++17 Vision Client입니다.
 
-```text
-UTIC CCTV
-→ HLS / OpenCV FFMPEG
-→ Letterbox
-→ TensorRT YOLO26n FP16
-→ NMS
-→ Tracker / Display
-→ 1초 Snapshot
-→ Final Server TCP
+> **이전 버전:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 유지하고, UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 추가했습니다.
+
+## Performance
+
+| 영상 처리 | 평균 추론 시간 | 데이터 생성 주기 |
+|:---:|:---:|:---:|
+| **약 10.5–11 FPS** | **약 55 ms** | **1초** |
+| Effective FPS | TensorRT FP16 | 최신 처리 프레임의 Detection |
+
+Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니다. 영상 처리 FPS와 네트워크 데이터 생성 주기는 별개입니다.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
+    subgraph V["영상 처리 · PAUSE 중에도 유지"]
+        B --> C["Letterbox → TensorRT FP16 → NMS"]
+        C --> D["Tracker / Display"]
+    end
+    C --> E{"RUNNING · 1초 경과?"}
+    E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
+    F --> G["Data TX → Final Server"]
+    G -.->|PAUSE / RESUME| H["Control RX / Runtime State"]
+    H -.-> E
 ```
+
+`track_id`는 내부 Tracking / Display에 사용합니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
+
+## Development History
+
+| 날짜 | 개발 내용 |
+|---|---|
+| [2026.10.06](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/9a5ec4c741543d3b123f2e78a0c5eeb7d51fb5c7) | UTIC CCTV 입력·HLS 처리·1초 Snapshot 전송 추가 |
+| [2026.10.07](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/74bd9d2f4dd0cbdc0a277b8350fcf1f4e41af94d) | 일시적 UTIC 시작 실패 재시도 및 오류 진단 개선 |
 
 ## Build
 
-필요 환경:
+| 구성 | 필요 환경 |
+|---|---|
+| 언어 / 빌드 | C++17 · CMake 3.16 이상 |
+| 영상 입력 / 처리 | OpenCV 4.8.0 + FFMPEG |
+| GPU 추론 | CUDA / TensorRT · 호환되는 YOLO26n FP16 engine |
+| HTTP / JSON | libcurl · nlohmann/json |
 
-- OpenCV 4.8.0 + FFMPEG
-- CUDA / TensorRT
-- libcurl
-- nlohmann/json
+모델은 저장소에 포함하지 않습니다. 개발 실행 전 `models/yolo26n_fp16.engine`을 별도로 준비합니다.
 
 ```bash
 cmake -S . -B build-cctv \
@@ -53,6 +98,9 @@ DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
   ./build-cctv/bin/edge_vision <server_ip> <server_port>
 ```
 
+<details>
+<summary><strong>환경변수 확인 및 정리</strong></summary>
+
 키 값을 출력하지 않고 현재 환경에서 설정 여부를 확인하려면:
 
 ```bash
@@ -65,6 +113,8 @@ python3 -c 'import os; v=os.getenv("UTIC_API_KEY"); print("UTIC_API_KEY:", "abse
 unset UTIC_API_KEY
 ```
 
+</details>
+
 ## CCTV 선택
 
 CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
@@ -73,6 +123,9 @@ CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
 export UTIC_CCTV_ID='<CCTV_ID>'
 ./run <server_ip> <server_port>
 ```
+
+<details>
+<summary><strong>CCTV ID 검색 방법</strong></summary>
 
 UTIC 개방데이터 목록에서 CCTV ID를 검색할 수 있습니다.
 
@@ -84,38 +137,41 @@ curl -sS \
 grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 ```
 
+</details>
+
 프로그램 시작 시 UTIC 개방데이터를 조회하고, 동일한 HTTP session/cookie를 사용하여 CCTV metadata와 HLS 주소를 조회합니다.
 
-실제 HLS `.m3u8` 주소는 Runtime에 조회하여 사용합니다.
+실제 HLS 주소는 실행 시 조회합니다. `.m3u8` URL과 확장자가 없는 `video_url` 형식을 처리합니다.
 
 ## Network Data
 
 TCP 메시지는 `4-byte big-endian length + UTF-8 JSON` 형식입니다.
 
-1초마다 최신 처리 Frame을 기준으로 다음 메시지를 각각 전송합니다.
+1초마다 최신 처리 프레임의 NMS 결과를 기준으로 메시지를 생성합니다.
 
-- `vision`: 전체 Detection 배열
-- `vehicle_count`: NMS 이후 차량 수
+| 메시지 | 내용 | Snapshot당 생성 수 |
+|---|---|---|
+| `vision` | 객체 하나의 class / confidence / bbox | 탐지 차량 N개 → N개 |
+| `vehicle_count` | 해당 프레임에서 탐지된 차량 수 | 1개 · 미검출 시에도 0 전송 |
 
-두 메시지는 같은 `frame_id`와 `timestamp_ms`를 사용하며, 각각 별도의 `message_id`를 가집니다.
+같은 Snapshot의 메시지는 `frame_id`와 `timestamp_ms`를 공유하며, `message_id`는 메시지마다 다릅니다. **차량 N개 → 총 N+1개 메시지**이며, `vision`은 배열 형식이 아닙니다.
 
-`track_id`는 내부 Tracking / Display 용도로 사용합니다.
+`vehicle_count`는 현재 프레임의 탐지 차량 수이며 누적 통과량이나 고유 차량 수가 아닙니다. `track_id`는 전송 JSON에 포함하지 않습니다.
 
 ## PAUSE / RESUME
 
-`PAUSED` 상태에서도 Vision Pipeline은 계속 동작합니다.
+| 상태 | 영상 처리·Tracking·표시 | Snapshot 생성·전송 |
+|---|---|---|
+| **RUNNING** | 계속 실행 | 1초 주기로 새 결과 생성 |
+| **PAUSED** | 계속 실행 | 중단 · 대기 큐 폐기 |
+| **재연결 직후** | 계속 실행 | 현재 세션의 `resume` 수신까지 대기 |
 
-```text
-CCTV Frame
-→ TensorRT Inference
-→ NMS
-→ Tracking
-→ Display
-```
-
-Network Snapshot 생성과 전송은 일시 중단되며, `RESUME` 이후 새로운 Frame을 기준으로 Snapshot 생성과 전송을 재개합니다.
+`RESUME` 이후 새 프레임부터 주기를 다시 시작하며 과거 Snapshot을 재전송하지 않습니다.
 
 ## Deployment
+
+<details>
+<summary><strong>운영 경로 및 설치 방법</strong></summary>
 
 운영 설치 경로:
 
@@ -139,37 +195,41 @@ cmake --build build-deploy -j2
 sudo cmake --install build-deploy
 ```
 
+설치 명령은 바이너리만 배치합니다. 모델과 쓰기 가능한 `/var/lib/traffic_cctv_vision` 디렉터리는 별도로 준비합니다.
+
+운영 바이너리를 실행하려면:
+
+```bash
+EDGE_VISION_BIN=/opt/traffic_cctv_vision/bin/edge_vision \
+  ./run <server_ip> <server_port>
+```
+
+</details>
+
 ## Validation
 
-자동 테스트는 다음 항목을 검증합니다.
+실제 Jetson Nano에서 UTIC CCTV 입력부터 TensorRT 추론, Tracking, Snapshot 전송까지 통합 검증했습니다.
 
-```text
-Snapshot
-UTIC 환경변수 설정 및 프로세스 상속
-UTIC CCTV 선택
-HLS URL 추출
-HTML 주석 내부 HLS 후보 제외
-HLS query parameter 보존
-Network Integration
-```
+| 검증 범위 | 확인 항목 | 결과 |
+|---|---|:---:|
+| CCTV 입력 | UTIC 조회 · 메타데이터 · HLS URL · FFMPEG · 1280×720 프레임 | PASS |
+| Vision | TensorRT YOLO26n FP16 · 차량 탐지 / NMS · Tracking / Display | PASS |
+| 전송 / 제어 | 1초 Snapshot · PAUSE / RESUME | PASS |
+| 종료 | SIGINT Graceful Shutdown | PASS |
+| 자동 테스트 | Snapshot · UTIC Provider · Network Integration · CCTV Recovery | 4/4 PASS |
 
-실제 UTIC CCTV 입력부터 TensorRT 추론, Tracking, Snapshot 전송까지 Jetson Nano에서 통합 검증했습니다.
+<details>
+<summary><strong>자동 테스트 및 트러블슈팅 상세</strong></summary>
 
-```text
-UTIC CCTV 조회                         PASS
-CCTV metadata 조회                     PASS
-HLS URL Runtime 추출                   PASS
-OpenCV FFMPEG Frame Capture            PASS
-1280x720 CCTV Frame                    PASS
-TensorRT YOLO26n FP16 Inference        PASS
-Vehicle Detection / NMS                PASS
-Tracking / Display                     PASS
-1초 Snapshot                           PASS
-PAUSE / RESUME                         PASS
-SIGINT Graceful Shutdown               PASS
-```
+| 테스트 | 검증 내용 |
+|---|---|
+| `snapshot` | 1초 주기 · 객체별 메시지 · 미검출 0 전송 · ID / 프레임 일치 · PAUSE / RESUME |
+| `utic_cctv_provider` | 환경변수 상속 · CCTV 선택 · 주석 제외 · HLS query 보존 · 확장자 없는 URL 추출 |
+| `network_integration` | TCP 프레이밍 · Control · 재연결 · 과거 데이터 차단 · 큐 경쟁 · 종료 |
+| `cctv_recovery` | URL 갱신의 일시적 오류 재시도 · 복구 불가 오류 전달 · 종료 처리 |
 
-측정된 Vision 처리 성능은 약 `10.5~11 FPS`, TensorRT 추론 시간은 약 `55 ms`였습니다.
+**HLS URL 선택 오류** — UTIC 재생 페이지의 HTML / JavaScript 주석에도 `.m3u8` 문자열이 있어 잘못된 URL이 선택될 수 있었습니다. 주석 영역을 제외하고 실제 재생 URL을 추출하며 query parameter를 유지하도록 수정하고 회귀 테스트를 추가했습니다.
 
-UTIC Stream page의 HTML 주석 내부에도 `.m3u8` 문자열이 포함될 수 있어, HLS parser에서 주석 영역을 제외하고 실제 Stream URL을 선택하도록 처리했습니다.
-시작 조회의 일시적 네트워크 실패도 30초 간격으로 실행당 최대 4회 시도합니다. 오류 로그는 open-data / metadata / playback-page 단계와 curl 원인을 구분하며 키·전체 URL은 출력하지 않습니다. 대기 중 Ctrl+C로 종료할 수 있습니다.
+**일시적 시작 실패** — UTIC 조회의 일시적 네트워크 오류는 30초 대기 후 재시도합니다. 조회 시도는 시작과 실행 중 URL 갱신을 합쳐 실행당 최대 4회입니다. 일시적 curl 오류는 open-data / metadata / playback-page 단계와 원인을 표시하며, 재시도 대기 중 Ctrl+C로 종료할 수 있습니다.
+
+</details>
