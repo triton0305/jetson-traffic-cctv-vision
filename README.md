@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <a href="#validation">검증</a> · <a href="#performance">성능</a> · <a href="#architecture">구조</a> · <a href="#network-data">전송</a> · <a href="#build">빌드</a> · <a href="#run">실행</a>
+  <a href="#validation">Validation</a> · <a href="#performance">Performance</a> · <a href="#architecture">Architecture</a> · <a href="#network-data">Network Data</a> · <a href="#build">Build</a> · <a href="#run">Run</a>
 </p>
 
 # Jetson Traffic CCTV Vision
