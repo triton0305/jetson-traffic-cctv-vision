@@ -171,37 +171,49 @@ unset UTIC_API_KEY
 
 </details>
 
-## CCTV 선택
-
-`run` 스크립트는 프로젝트 루트의 `.env`를 자동으로 로드합니다.  
-처음 실행하기 전에 UTIC API Key와 사용할 CCTV ID를 설정합니다.
-
-```bash
-UTIC_API_KEY='<YOUR_API_KEY>'
-UTIC_CCTV_ID='E910184'
-```
-
-설정된 CCTV ID는 다음과 같이 확인할 수 있습니다.
-
-```bash
-grep '^UTIC_CCTV_ID=' .env
-```
-
-CCTV를 변경할 때는 `.env`의 `UTIC_CCTV_ID`만 수정하면 됩니다.
-
-```bash
-sed -i "s/^UTIC_CCTV_ID=.*/UTIC_CCTV_ID='E910184'/" .env
-```
-
-설정 후 별도의 코드 수정이나 재빌드 없이 실행합니다.
+## Run
 
 ```bash
 ./run <server_ip> <server_port>
 ```
 
-`run` 스크립트가 `.env`를 로드하고 `UTIC_API_KEY`와 `UTIC_CCTV_ID`를 실행 프로세스에 전달합니다.
+<details>
+<summary><strong>UTIC API Key 설정</strong></summary>
 
-> `.env`에는 UTIC API Key가 포함되므로 Git에 커밋하지 않습니다.
+UTIC 인증키는 환경변수로 전달합니다.
+
+```bash
+read -r -s -p 'UTIC API key: ' UTIC_API_KEY
+printf '\n'
+export UTIC_API_KEY
+```
+
+키 입력, `export`, 실행은 동일한 터미널에서 수행합니다.
+
+키 값을 출력하지 않고 현재 환경에서 설정 여부를 확인하려면:
+
+```bash
+python3 -c 'import os; v=os.getenv("UTIC_API_KEY"); print("UTIC_API_KEY:", "absent" if v is None else "empty" if not v else "nonempty")'
+```
+
+실행 후 필요하면 환경변수를 제거합니다.
+
+```bash
+unset UTIC_API_KEY
+```
+
+</details>
+
+개발 바이너리를 직접 실행하려면:
+
+```bash
+DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
+  ./build-cctv/bin/edge_vision <server_ip> <server_port>
+```
+
+## CCTV 선택
+
+CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
 
 <details>
 <summary><strong>CCTV ID 검색 방법</strong></summary>
@@ -215,6 +227,42 @@ curl -sS \
 
 grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 ```
+
+</details>
+
+```bash
+export UTIC_CCTV_ID='<CCTV_ID>'
+./run <server_ip> <server_port>
+```
+
+<details>
+<summary><strong>CCTV ID 기본값 설정</strong></summary>
+
+매번 `UTIC_CCTV_ID`를 직접 지정하지 않고 실행하려면 프로젝트 루트의 `.env`에 CCTV ID를 설정합니다.
+
+```bash
+UTIC_CCTV_ID='<CCTV_ID>'
+```
+
+현재 설정된 CCTV ID는 다음과 같이 확인할 수 있습니다.
+
+```bash
+grep '^UTIC_CCTV_ID=' .env
+```
+
+CCTV ID를 변경하려면:
+
+```bash
+sed -i "s/^UTIC_CCTV_ID=.*/UTIC_CCTV_ID='<CCTV_ID>'/" .env
+```
+
+설정 후 별도의 코드 수정이나 재빌드 없이 실행할 수 있습니다.
+
+```bash
+./run <server_ip> <server_port>
+```
+
+`run` 스크립트가 `.env`를 자동으로 로드하고 설정된 CCTV ID를 사용합니다.
 
 </details>
 
