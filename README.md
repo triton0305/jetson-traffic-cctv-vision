@@ -182,18 +182,21 @@ grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 </details>
 
 <details>
-<summary><strong>CCTV ID 설정</strong></summary>
+<summary><strong>CCTV ID 일회성 설정</strong></summary>
 
-CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
-
-현재 실행에서 사용할 CCTV ID를 지정하려면:
+현재 실행에서 사용할 CCTV는 `UTIC_CCTV_ID` 환경변수로 지정합니다.
 
 ```bash
 export UTIC_CCTV_ID='<CCTV_ID>'
 ./run <server_ip> <server_port>
 ```
 
-매번 `UTIC_CCTV_ID`를 직접 지정하지 않고 실행하려면 프로젝트 루트의 `.env`에 CCTV ID 기본값을 설정합니다.
+</details>
+
+<details>
+<summary><strong>CCTV ID 기본값 설정</strong></summary>
+
+매번 `UTIC_CCTV_ID`를 직접 지정하지 않고 실행하려면 프로젝트 루트의 `.env`에 CCTV ID를 설정합니다.
 
 ```bash
 UTIC_CCTV_ID='<CCTV_ID>'
