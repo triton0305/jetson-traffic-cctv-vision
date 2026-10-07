@@ -80,16 +80,24 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 ```mermaid
 flowchart TD
     A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
-    subgraph V["영상 처리 · PAUSE 중에도 유지"]
+
+    subgraph V["Jetson Nano · Vision Client"]
         B --> C["Letterbox → TensorRT FP16 → NMS"]
         C --> D["Tracker / Display"]
+        C --> E{"RUNNING · 1초 경과?"}
+        E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
     end
-    C --> E{"RUNNING · 1초 경과?"}
-    E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
-    F --> G["Data TX → Relay Server"]
-    G -.->|PAUSE / RESUME| H["Control RX / Runtime State"]
+
+    F --> G["Raspberry Pi · Relay Server"]
+    G --> U["Ubuntu Server"]
+    U --> M["MariaDB"]
+
+    U -.->|PAUSE / RESUME| G
+    G -.->|Control| H["Control RX / Runtime State"]
     H -.-> E
 ```
+
+`vision` / `vehicle_count`는 Raspberry Pi의 Relay Server를 거쳐 Ubuntu Server로 전달되어 MariaDB에 저장됩니다. 서버 상태에 따른 `PAUSE` / `RESUME` Control은 반대 방향으로 Jetson에 전달됩니다.
 
 `track_id`는 내부 Tracking / Display에 사용합니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
 
