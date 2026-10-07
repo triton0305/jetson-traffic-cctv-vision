@@ -215,6 +215,11 @@ DISPLAY=:1 XAUTHORITY=/home/jetson/.Xauthority \
 
 CCTV는 `UTIC_CCTV_ID` 환경변수로 선택합니다.
 
+```bash
+export UTIC_CCTV_ID='<CCTV_ID>'
+./run <server_ip> <server_port>
+```
+
 <details>
 <summary><strong>CCTV ID 검색 방법</strong></summary>
 
@@ -229,11 +234,6 @@ grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 ```
 
 </details>
-
-```bash
-export UTIC_CCTV_ID='<CCTV_ID>'
-./run <server_ip> <server_port>
-```
 
 <details>
 <summary><strong>CCTV ID 기본값 설정</strong></summary>
