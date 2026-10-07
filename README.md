@@ -16,7 +16,7 @@
 
 # Jetson Traffic CCTV Vision
 
-**Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Final Server로 전송하는 C++17 Vision Client입니다.**
+**Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Relay Server로 전송하는 C++17 Vision Client입니다.**
 
 > **기반 프로젝트:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 기반으로, 팀 프로젝트 요구사항에 맞춰 UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 구현했습니다.
 
