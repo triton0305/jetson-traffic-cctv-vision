@@ -231,4 +231,14 @@ EDGE_VISION_BIN=/opt/traffic_cctv_vision/bin/edge_vision \
 
 **일시적 시작 실패** — UTIC 조회의 일시적 네트워크 오류는 30초 대기 후 재시도합니다. 조회 시도는 시작과 실행 중 URL 갱신을 합쳐 실행당 최대 4회입니다. 일시적 curl 오류는 open-data / metadata / playback-page 단계와 원인을 표시하며, 재시도 대기 중 Ctrl+C로 종료할 수 있습니다.
 
+**API Key 전달 오류** — Shell에서 API Key를 설정했지만 실행 프로세스에서 환경변수를 확인할 수 없는 문제가 있었습니다. Child process의 환경을 직접 확인해 서버나 API 장애가 아닌 환경변수 전달 문제로 범위를 좁혔으며, 실행 프로세스까지 필요한 환경변수가 전달되도록 수정했습니다.
+
+**Snapshot 부분 폐기** — 기존 메시지 단위 bounded queue는 포화 시 가장 오래된 메시지 하나를 폐기해, 같은 1초 Snapshot의 일부 `vision`만 유실될 수 있었습니다. Queue 관리 단위를 메시지에서 Snapshot으로 변경해 포화 시 오래된 Snapshot 전체를 폐기하도록 수정했으며, 객체별 `vision`, `vehicle_count`, 4-byte big-endian length-prefix 등 기존 서버 인터페이스는 유지했습니다.
+
+**대량 객체 Snapshot 검증** — Snapshot 단위 Queue 변경 후 차량 0대·16대·20대뿐 아니라 100대 조건까지 검증했습니다. 차량 100대에서 `vision` 100개와 `vehicle_count` 1개, 총 101개 메시지가 생성되고 로컬 TCP 서버에서 101개 모두 누락·중복 없이 수신되는 것을 확인했습니다. Queue 포화 시에도 개별 메시지가 아닌 오래된 Snapshot 전체가 폐기되는 것을 검증했습니다.
+
+**PAUSE 중 과거 Snapshot 누적** — 네트워크 또는 downstream 장애 중 Snapshot이 계속 쌓이면 복구 후 오래된 차량 정보가 전송될 수 있습니다. PAUSE 시 미전송 Snapshot을 폐기하고 영상 처리와 TensorRT 추론은 유지하며, RESUME 후 새로운 프레임의 Snapshot부터 전송하도록 구성했습니다.
+
+**Snapshot 전달 보장 범위** — Snapshot 단위 Queue는 Queue 포화로 같은 Snapshot의 일부 메시지만 폐기되는 문제를 방지합니다. 다만 Snapshot의 개별 메시지를 송신하는 도중 연결이 끊기거나 PAUSE되면 일부 메시지만 서버에 도달할 수 있습니다. Snapshot 전체의 수신·저장을 원자적으로 보장하려면 Snapshot 단위 ACK나 서버 Transaction 등 별도의 프로토콜 지원이 필요합니다.
+
 </details>
