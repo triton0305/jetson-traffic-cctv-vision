@@ -166,6 +166,8 @@ unset UTIC_API_KEY
 
 </details>
 
+---
+
 <details>
 <summary><strong>CCTV ID 검색 방법</strong></summary>
 
@@ -181,6 +183,8 @@ grep -n -C 3 '<CCTV_NAME>' /tmp/utic_open.html
 
 </details>
 
+---
+
 <details>
 <summary><strong>CCTV ID 일회성 설정</strong></summary>
 
@@ -192,6 +196,8 @@ export UTIC_CCTV_ID='<CCTV_ID>'
 ```
 
 </details>
+
+---
 
 <details>
 <summary><strong>CCTV ID 기본값 설정</strong></summary>
@@ -224,7 +230,7 @@ sed -i "s/^UTIC_CCTV_ID=.*/UTIC_CCTV_ID='<CCTV_ID>'/" .env
 
 </details>
 
-<br>
+---
 
 프로그램 시작 시 UTIC 개방데이터를 조회하고, 동일한 HTTP session/cookie를 사용하여 CCTV metadata와 HLS 주소를 조회합니다.
 
