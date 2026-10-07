@@ -86,31 +86,41 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 
 ```mermaid
 flowchart TD
-    A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
+    A["UTIC Provider · Metadata / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
 
     subgraph J["Jetson Nano · Vision Client"]
         B --> C["Letterbox → TensorRT FP16 → NMS"]
         C --> D["Tracker / Display"]
         C --> E{"RUNNING · 1초 경과?"}
-        E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
-        H["Control RX / Runtime State"] -.-> E
+        E -->|Yes| F["vision / vehicle_count 생성"]
+        F --> Q["Memory Queue"]
+        Q --> N["Network Worker"]
+
+        N --> L["TCP 송신"]
+        N --> R["연결 상태 감지 / 재연결"]
+        N --> H["Control RX"]
+        R --> S["Runtime State"]
+        H --> S
+        S -.-> E
     end
 
-    subgraph S["Team Server"]
+    subgraph T["Team Server"]
         G["Raspberry Pi · Relay Server"] --> U["Ubuntu Server"]
         U --> M["MariaDB"]
     end
 
-    F -->|vision / vehicle_count| G
+    L -->|vision / vehicle_count| G
     U -.->|PAUSE / RESUME| G
     G -.->|Control| H
 ```
 
-이 프로젝트의 담당 범위는 **UTIC CCTV 입력부터 TensorRT 차량 탐지, Tracking, 1초 Snapshot 생성 및 `vision` / `vehicle_count` 송신, `PAUSE` / `RESUME` Control 처리까지의 Jetson Nano Vision Client**입니다.
+이 프로젝트의 담당 범위는 **UTIC CCTV 입력부터 TensorRT 차량 탐지, Tracking, 1초 Snapshot 생성, `vision` / `vehicle_count` JSON 생성 및 송신, 네트워크 상태 관리와 `PAUSE` / `RESUME` Control 처리까지의 Jetson Nano Vision Client**입니다.
 
-생성된 `vision` / `vehicle_count`는 팀 프로젝트의 Raspberry Pi Relay Server를 거쳐 Ubuntu Server로 전달되어 MariaDB에 저장됩니다. 서버 상태에 따른 Control은 반대 방향으로 Jetson Vision Client에 전달됩니다.
+Jetson Vision Client는 차량 탐지 결과를 기반으로 `vision` / `vehicle_count` JSON을 생성하고 Memory Queue를 통해 TCP로 송신합니다. 데이터는 Raspberry Pi Relay Server를 거쳐 Ubuntu Server로 전달되어 MariaDB에 저장됩니다.
 
-`track_id`는 내부 Tracking / Display에 사용합니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
+Jetson은 서버 연결 장애를 감지하면 PAUSE 상태로 전환하고 대기 Queue를 비우며, 재연결 후 현재 세션의 `RESUME` Control을 수신하면 새로운 Snapshot부터 전송을 재개합니다.
+
+`track_id`는 Tracking / Display에 사용하며 전송 JSON에는 포함하지 않습니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
 
 ## Build
 
