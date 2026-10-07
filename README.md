@@ -35,7 +35,7 @@
 | Effective FPS | TensorRT FP16 | 최신 처리 프레임의 Detection |
 
 Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니다.  
-영상 처리 FPS와 네트워크 데이터 생성 주기는 별개이며, Final Server의 인터페이스 요구사항에 따라 최신 처리 프레임의 탐지 결과를 1초 주기로 생성·전송합니다.
+영상 처리 FPS와 네트워크 데이터 생성 주기는 별개이며, 서버 인터페이스 요구사항에 따라 최신 탐지 결과를 1초 주기로 생성·전송합니다.
 
 ## Architecture
 
