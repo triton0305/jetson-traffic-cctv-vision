@@ -86,7 +86,7 @@ flowchart TD
     end
     C --> E{"RUNNING · 1초 경과?"}
     E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
-    F --> G["Data TX → Final Server"]
+    F --> G["Data TX → Relay Server"]
     G -.->|PAUSE / RESUME| H["Control RX / Runtime State"]
     H -.-> E
 ```
