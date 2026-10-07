@@ -16,11 +16,16 @@
 
 # Jetson Traffic CCTV Vision
 
-**개발 기간: 2026.10.06 ~ 2026.10.07**
-
 Jetson Nano에서 UTIC CCTV 영상을 실시간 처리하고 차량 탐지 결과를 Final Server로 전송하는 C++17 Vision Client입니다.
 
 > **이전 버전:** USB Webcam 기반 [Jetson Edge Vision](https://github.com/triton0305/jetson-edge-vision)의 TensorRT FP16 추론 파이프라인을 유지하고, UTIC CCTV Provider / Input 계층과 1초 주기 데이터 전송을 추가했습니다.
+
+## Development History
+
+| 날짜 | 개발 내용 |
+|---|---|
+| [2026.10.06](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/9a5ec4c741543d3b123f2e78a0c5eeb7d51fb5c7) | UTIC CCTV 입력·HLS 처리·1초 Snapshot 전송 추가 |
+| [2026.10.07](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/74bd9d2f4dd0cbdc0a277b8350fcf1f4e41af94d) | 일시적 UTIC 시작 실패 재시도 및 오류 진단 개선 |
 
 ## Performance
 
@@ -48,13 +53,6 @@ flowchart TD
 ```
 
 `track_id`는 내부 Tracking / Display에 사용합니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
-
-## Development History
-
-| 날짜 | 개발 내용 |
-|---|---|
-| [2026.10.06](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/9a5ec4c741543d3b123f2e78a0c5eeb7d51fb5c7) | UTIC CCTV 입력·HLS 처리·1초 Snapshot 전송 추가 |
-| [2026.10.07](https://github.com/triton0305/jetson-traffic-cctv-vision/commit/74bd9d2f4dd0cbdc0a277b8350fcf1f4e41af94d) | 일시적 UTIC 시작 실패 재시도 및 오류 진단 개선 |
 
 ## Build
 
