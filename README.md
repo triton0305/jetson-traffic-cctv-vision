@@ -81,23 +81,27 @@ Jetson Nano에서 1280×720 UTIC CCTV 입력으로 측정한 실행 결과입니
 flowchart TD
     A["UTIC Provider · 메타데이터 / HLS URL"] --> B["CCTV Input · OpenCV FFMPEG"]
 
-    subgraph V["Jetson Nano · Vision Client"]
+    subgraph J["Jetson Nano · Vision Client · 담당 영역"]
         B --> C["Letterbox → TensorRT FP16 → NMS"]
         C --> D["Tracker / Display"]
         C --> E{"RUNNING · 1초 경과?"}
         E -->|Yes| F["객체별 vision + vehicle_count → Queue"]
+        H["Control RX / Runtime State"] -.-> E
     end
 
-    F --> G["Raspberry Pi · Relay Server"]
-    G --> U["Ubuntu Server"]
-    U --> M["MariaDB"]
+    subgraph S["Team Server"]
+        G["Raspberry Pi · Relay Server"] --> U["Ubuntu Server"]
+        U --> M["MariaDB"]
+    end
 
+    F -->|vision / vehicle_count| G
     U -.->|PAUSE / RESUME| G
-    G -.->|Control| H["Control RX / Runtime State"]
-    H -.-> E
+    G -.->|Control| H
 ```
 
-`vision` / `vehicle_count`는 Raspberry Pi의 Relay Server를 거쳐 Ubuntu Server로 전달되어 MariaDB에 저장됩니다. 서버 상태에 따른 `PAUSE` / `RESUME` Control은 반대 방향으로 Jetson에 전달됩니다.
+이 프로젝트의 담당 범위는 **UTIC CCTV 입력부터 TensorRT 차량 탐지, Tracking, 1초 Snapshot 생성 및 `vision` / `vehicle_count` 송신, `PAUSE` / `RESUME` Control 처리까지의 Jetson Nano Vision Client**입니다.
+
+생성된 `vision` / `vehicle_count`는 팀 프로젝트의 Raspberry Pi Relay Server를 거쳐 Ubuntu Server로 전달되어 MariaDB에 저장됩니다. 서버 상태에 따른 Control은 반대 방향으로 Jetson Vision Client에 전달됩니다.
 
 `track_id`는 내부 Tracking / Display에 사용합니다. Snapshot은 이미지 파일 저장이 아니라 **최신 처리 프레임의 탐지 결과를 주기적으로 JSON으로 만드는 동작**입니다.
 
